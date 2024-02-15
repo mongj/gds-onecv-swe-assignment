@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/teacher"
 )
 
@@ -16,6 +18,27 @@ type TeacherCreate struct {
 	config
 	mutation *TeacherMutation
 	hooks    []Hook
+}
+
+// SetEmail sets the "email" field.
+func (tc *TeacherCreate) SetEmail(s string) *TeacherCreate {
+	tc.mutation.SetEmail(s)
+	return tc
+}
+
+// AddStudentIDs adds the "students" edge to the Student entity by IDs.
+func (tc *TeacherCreate) AddStudentIDs(ids ...int) *TeacherCreate {
+	tc.mutation.AddStudentIDs(ids...)
+	return tc
+}
+
+// AddStudents adds the "students" edges to the Student entity.
+func (tc *TeacherCreate) AddStudents(s ...*Student) *TeacherCreate {
+	ids := make([]int, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return tc.AddStudentIDs(ids...)
 }
 
 // Mutation returns the TeacherMutation object of the builder.
@@ -52,6 +75,14 @@ func (tc *TeacherCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (tc *TeacherCreate) check() error {
+	if _, ok := tc.mutation.Email(); !ok {
+		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Teacher.email"`)}
+	}
+	if v, ok := tc.mutation.Email(); ok {
+		if err := teacher.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Teacher.email": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -78,6 +109,26 @@ func (tc *TeacherCreate) createSpec() (*Teacher, *sqlgraph.CreateSpec) {
 		_node = &Teacher{config: tc.config}
 		_spec = sqlgraph.NewCreateSpec(teacher.Table, sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt))
 	)
+	if value, ok := tc.mutation.Email(); ok {
+		_spec.SetField(teacher.FieldEmail, field.TypeString, value)
+		_node.Email = value
+	}
+	if nodes := tc.mutation.StudentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   teacher.StudentsTable,
+			Columns: teacher.StudentsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(student.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 

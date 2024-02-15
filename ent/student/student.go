@@ -4,6 +4,7 @@ package student
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -11,14 +12,33 @@ const (
 	Label = "student"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldEmail holds the string denoting the email field in the database.
+	FieldEmail = "email"
+	// FieldIsSuspended holds the string denoting the is_suspended field in the database.
+	FieldIsSuspended = "is_suspended"
+	// EdgeTeachers holds the string denoting the teachers edge name in mutations.
+	EdgeTeachers = "teachers"
 	// Table holds the table name of the student in the database.
 	Table = "students"
+	// TeachersTable is the table that holds the teachers relation/edge. The primary key declared below.
+	TeachersTable = "teacher_students"
+	// TeachersInverseTable is the table name for the Teacher entity.
+	// It exists in this package in order to avoid circular dependency with the "teacher" package.
+	TeachersInverseTable = "teachers"
 )
 
 // Columns holds all SQL columns for student fields.
 var Columns = []string{
 	FieldID,
+	FieldEmail,
+	FieldIsSuspended,
 }
+
+var (
+	// TeachersPrimaryKey and TeachersColumn2 are the table columns denoting the
+	// primary key for the teachers relation (M2M).
+	TeachersPrimaryKey = []string{"teacher_id", "student_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -30,10 +50,48 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
+	// DefaultIsSuspended holds the default value on creation for the "is_suspended" field.
+	DefaultIsSuspended bool
+)
+
 // OrderOption defines the ordering options for the Student queries.
 type OrderOption func(*sql.Selector)
 
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByEmail orders the results by the email field.
+func ByEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmail, opts...).ToFunc()
+}
+
+// ByIsSuspended orders the results by the is_suspended field.
+func ByIsSuspended(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsSuspended, opts...).ToFunc()
+}
+
+// ByTeachersCount orders the results by teachers count.
+func ByTeachersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newTeachersStep(), opts...)
+	}
+}
+
+// ByTeachers orders the results by teachers terms.
+func ByTeachers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTeachersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newTeachersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TeachersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, TeachersTable, TeachersPrimaryKey...),
+	)
 }

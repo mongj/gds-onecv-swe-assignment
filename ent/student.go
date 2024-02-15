@@ -13,10 +13,35 @@ import (
 
 // Student is the model entity for the Student schema.
 type Student struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID           int `json:"id,omitempty"`
+	ID int `json:"id,omitempty"`
+	// Email holds the value of the "email" field.
+	Email string `json:"email,omitempty"`
+	// IsSuspended holds the value of the "is_suspended" field.
+	IsSuspended bool `json:"is_suspended,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the StudentQuery when eager-loading is set.
+	Edges        StudentEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// StudentEdges holds the relations/edges for other nodes in the graph.
+type StudentEdges struct {
+	// Teachers holds the value of the teachers edge.
+	Teachers []*Teacher `json:"teachers,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// TeachersOrErr returns the Teachers value or an error if the edge
+// was not loaded in eager-loading.
+func (e StudentEdges) TeachersOrErr() ([]*Teacher, error) {
+	if e.loadedTypes[0] {
+		return e.Teachers, nil
+	}
+	return nil, &NotLoadedError{edge: "teachers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -24,8 +49,12 @@ func (*Student) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case student.FieldIsSuspended:
+			values[i] = new(sql.NullBool)
 		case student.FieldID:
 			values[i] = new(sql.NullInt64)
+		case student.FieldEmail:
+			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -47,6 +76,18 @@ func (s *Student) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			s.ID = int(value.Int64)
+		case student.FieldEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field email", values[i])
+			} else if value.Valid {
+				s.Email = value.String
+			}
+		case student.FieldIsSuspended:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_suspended", values[i])
+			} else if value.Valid {
+				s.IsSuspended = value.Bool
+			}
 		default:
 			s.selectValues.Set(columns[i], values[i])
 		}
@@ -58,6 +99,11 @@ func (s *Student) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (s *Student) Value(name string) (ent.Value, error) {
 	return s.selectValues.Get(name)
+}
+
+// QueryTeachers queries the "teachers" edge of the Student entity.
+func (s *Student) QueryTeachers() *TeacherQuery {
+	return NewStudentClient(s.config).QueryTeachers(s)
 }
 
 // Update returns a builder for updating this Student.
@@ -82,7 +128,12 @@ func (s *Student) Unwrap() *Student {
 func (s *Student) String() string {
 	var builder strings.Builder
 	builder.WriteString("Student(")
-	builder.WriteString(fmt.Sprintf("id=%v", s.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", s.ID))
+	builder.WriteString("email=")
+	builder.WriteString(s.Email)
+	builder.WriteString(", ")
+	builder.WriteString("is_suspended=")
+	builder.WriteString(fmt.Sprintf("%v", s.IsSuspended))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -1,6 +1,10 @@
 package schema
 
-import "entgo.io/ent"
+import (
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+)
 
 // Teacher holds the schema definition for the Teacher entity.
 type Teacher struct {
@@ -9,10 +13,16 @@ type Teacher struct {
 
 // Fields of the Teacher.
 func (Teacher) Fields() []ent.Field {
-	return nil
+	return []ent.Field{
+		field.String("email").
+			NotEmpty().
+			Unique(),
+	}
 }
 
 // Edges of the Teacher.
 func (Teacher) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("students", Student.Type),
+	}
 }

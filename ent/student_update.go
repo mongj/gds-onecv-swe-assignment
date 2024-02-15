@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/predicate"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/teacher"
 )
 
 // StudentUpdate is the builder for updating Student entities.
@@ -27,9 +28,73 @@ func (su *StudentUpdate) Where(ps ...predicate.Student) *StudentUpdate {
 	return su
 }
 
+// SetEmail sets the "email" field.
+func (su *StudentUpdate) SetEmail(s string) *StudentUpdate {
+	su.mutation.SetEmail(s)
+	return su
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (su *StudentUpdate) SetNillableEmail(s *string) *StudentUpdate {
+	if s != nil {
+		su.SetEmail(*s)
+	}
+	return su
+}
+
+// SetIsSuspended sets the "is_suspended" field.
+func (su *StudentUpdate) SetIsSuspended(b bool) *StudentUpdate {
+	su.mutation.SetIsSuspended(b)
+	return su
+}
+
+// SetNillableIsSuspended sets the "is_suspended" field if the given value is not nil.
+func (su *StudentUpdate) SetNillableIsSuspended(b *bool) *StudentUpdate {
+	if b != nil {
+		su.SetIsSuspended(*b)
+	}
+	return su
+}
+
+// AddTeacherIDs adds the "teachers" edge to the Teacher entity by IDs.
+func (su *StudentUpdate) AddTeacherIDs(ids ...int) *StudentUpdate {
+	su.mutation.AddTeacherIDs(ids...)
+	return su
+}
+
+// AddTeachers adds the "teachers" edges to the Teacher entity.
+func (su *StudentUpdate) AddTeachers(t ...*Teacher) *StudentUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return su.AddTeacherIDs(ids...)
+}
+
 // Mutation returns the StudentMutation object of the builder.
 func (su *StudentUpdate) Mutation() *StudentMutation {
 	return su.mutation
+}
+
+// ClearTeachers clears all "teachers" edges to the Teacher entity.
+func (su *StudentUpdate) ClearTeachers() *StudentUpdate {
+	su.mutation.ClearTeachers()
+	return su
+}
+
+// RemoveTeacherIDs removes the "teachers" edge to Teacher entities by IDs.
+func (su *StudentUpdate) RemoveTeacherIDs(ids ...int) *StudentUpdate {
+	su.mutation.RemoveTeacherIDs(ids...)
+	return su
+}
+
+// RemoveTeachers removes "teachers" edges to Teacher entities.
+func (su *StudentUpdate) RemoveTeachers(t ...*Teacher) *StudentUpdate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return su.RemoveTeacherIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -59,7 +124,20 @@ func (su *StudentUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (su *StudentUpdate) check() error {
+	if v, ok := su.mutation.Email(); ok {
+		if err := student.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Student.email": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (su *StudentUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := su.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(student.Table, student.Columns, sqlgraph.NewFieldSpec(student.FieldID, field.TypeInt))
 	if ps := su.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -67,6 +145,57 @@ func (su *StudentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := su.mutation.Email(); ok {
+		_spec.SetField(student.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := su.mutation.IsSuspended(); ok {
+		_spec.SetField(student.FieldIsSuspended, field.TypeBool, value)
+	}
+	if su.mutation.TeachersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedTeachersIDs(); len(nodes) > 0 && !su.mutation.TeachersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.TeachersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -88,9 +217,73 @@ type StudentUpdateOne struct {
 	mutation *StudentMutation
 }
 
+// SetEmail sets the "email" field.
+func (suo *StudentUpdateOne) SetEmail(s string) *StudentUpdateOne {
+	suo.mutation.SetEmail(s)
+	return suo
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (suo *StudentUpdateOne) SetNillableEmail(s *string) *StudentUpdateOne {
+	if s != nil {
+		suo.SetEmail(*s)
+	}
+	return suo
+}
+
+// SetIsSuspended sets the "is_suspended" field.
+func (suo *StudentUpdateOne) SetIsSuspended(b bool) *StudentUpdateOne {
+	suo.mutation.SetIsSuspended(b)
+	return suo
+}
+
+// SetNillableIsSuspended sets the "is_suspended" field if the given value is not nil.
+func (suo *StudentUpdateOne) SetNillableIsSuspended(b *bool) *StudentUpdateOne {
+	if b != nil {
+		suo.SetIsSuspended(*b)
+	}
+	return suo
+}
+
+// AddTeacherIDs adds the "teachers" edge to the Teacher entity by IDs.
+func (suo *StudentUpdateOne) AddTeacherIDs(ids ...int) *StudentUpdateOne {
+	suo.mutation.AddTeacherIDs(ids...)
+	return suo
+}
+
+// AddTeachers adds the "teachers" edges to the Teacher entity.
+func (suo *StudentUpdateOne) AddTeachers(t ...*Teacher) *StudentUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return suo.AddTeacherIDs(ids...)
+}
+
 // Mutation returns the StudentMutation object of the builder.
 func (suo *StudentUpdateOne) Mutation() *StudentMutation {
 	return suo.mutation
+}
+
+// ClearTeachers clears all "teachers" edges to the Teacher entity.
+func (suo *StudentUpdateOne) ClearTeachers() *StudentUpdateOne {
+	suo.mutation.ClearTeachers()
+	return suo
+}
+
+// RemoveTeacherIDs removes the "teachers" edge to Teacher entities by IDs.
+func (suo *StudentUpdateOne) RemoveTeacherIDs(ids ...int) *StudentUpdateOne {
+	suo.mutation.RemoveTeacherIDs(ids...)
+	return suo
+}
+
+// RemoveTeachers removes "teachers" edges to Teacher entities.
+func (suo *StudentUpdateOne) RemoveTeachers(t ...*Teacher) *StudentUpdateOne {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return suo.RemoveTeacherIDs(ids...)
 }
 
 // Where appends a list predicates to the StudentUpdate builder.
@@ -133,7 +326,20 @@ func (suo *StudentUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (suo *StudentUpdateOne) check() error {
+	if v, ok := suo.mutation.Email(); ok {
+		if err := student.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Student.email": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (suo *StudentUpdateOne) sqlSave(ctx context.Context) (_node *Student, err error) {
+	if err := suo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(student.Table, student.Columns, sqlgraph.NewFieldSpec(student.FieldID, field.TypeInt))
 	id, ok := suo.mutation.ID()
 	if !ok {
@@ -158,6 +364,57 @@ func (suo *StudentUpdateOne) sqlSave(ctx context.Context) (_node *Student, err e
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := suo.mutation.Email(); ok {
+		_spec.SetField(student.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := suo.mutation.IsSuspended(); ok {
+		_spec.SetField(student.FieldIsSuspended, field.TypeBool, value)
+	}
+	if suo.mutation.TeachersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedTeachersIDs(); len(nodes) > 0 && !suo.mutation.TeachersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.TeachersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Student{config: suo.config}
 	_spec.Assign = _node.assignValues
