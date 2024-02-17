@@ -13,10 +13,33 @@ import (
 
 // Teacher is the model entity for the Teacher schema.
 type Teacher struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID           int `json:"id,omitempty"`
+	ID int `json:"id,omitempty"`
+	// Email holds the value of the "email" field.
+	Email string `json:"email,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TeacherQuery when eager-loading is set.
+	Edges        TeacherEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// TeacherEdges holds the relations/edges for other nodes in the graph.
+type TeacherEdges struct {
+	// Students holds the value of the students edge.
+	Students []*Student `json:"students,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// StudentsOrErr returns the Students value or an error if the edge
+// was not loaded in eager-loading.
+func (e TeacherEdges) StudentsOrErr() ([]*Student, error) {
+	if e.loadedTypes[0] {
+		return e.Students, nil
+	}
+	return nil, &NotLoadedError{edge: "students"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -26,6 +49,8 @@ func (*Teacher) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case teacher.FieldID:
 			values[i] = new(sql.NullInt64)
+		case teacher.FieldEmail:
+			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -47,6 +72,12 @@ func (t *Teacher) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			t.ID = int(value.Int64)
+		case teacher.FieldEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field email", values[i])
+			} else if value.Valid {
+				t.Email = value.String
+			}
 		default:
 			t.selectValues.Set(columns[i], values[i])
 		}
@@ -58,6 +89,11 @@ func (t *Teacher) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (t *Teacher) Value(name string) (ent.Value, error) {
 	return t.selectValues.Get(name)
+}
+
+// QueryStudents queries the "students" edge of the Teacher entity.
+func (t *Teacher) QueryStudents() *StudentQuery {
+	return NewTeacherClient(t.config).QueryStudents(t)
 }
 
 // Update returns a builder for updating this Teacher.
@@ -82,7 +118,9 @@ func (t *Teacher) Unwrap() *Teacher {
 func (t *Teacher) String() string {
 	var builder strings.Builder
 	builder.WriteString("Teacher(")
-	builder.WriteString(fmt.Sprintf("id=%v", t.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", t.ID))
+	builder.WriteString("email=")
+	builder.WriteString(t.Email)
 	builder.WriteByte(')')
 	return builder.String()
 }

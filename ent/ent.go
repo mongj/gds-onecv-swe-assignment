@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/mongj/gds-onecv-swe-assignment/ent/notification"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/teacher"
 )
@@ -75,9 +74,8 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			notification.Table: notification.ValidColumn,
-			student.Table:      student.ValidColumn,
-			teacher.Table:      teacher.ValidColumn,
+			student.Table: student.ValidColumn,
+			teacher.Table: teacher.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

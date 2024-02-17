@@ -4,11 +4,13 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/teacher"
 )
 
 // StudentCreate is the builder for creating a Student entity.
@@ -18,6 +20,41 @@ type StudentCreate struct {
 	hooks    []Hook
 }
 
+// SetEmail sets the "email" field.
+func (sc *StudentCreate) SetEmail(s string) *StudentCreate {
+	sc.mutation.SetEmail(s)
+	return sc
+}
+
+// SetIsSuspended sets the "is_suspended" field.
+func (sc *StudentCreate) SetIsSuspended(b bool) *StudentCreate {
+	sc.mutation.SetIsSuspended(b)
+	return sc
+}
+
+// SetNillableIsSuspended sets the "is_suspended" field if the given value is not nil.
+func (sc *StudentCreate) SetNillableIsSuspended(b *bool) *StudentCreate {
+	if b != nil {
+		sc.SetIsSuspended(*b)
+	}
+	return sc
+}
+
+// AddTeacherIDs adds the "teachers" edge to the Teacher entity by IDs.
+func (sc *StudentCreate) AddTeacherIDs(ids ...int) *StudentCreate {
+	sc.mutation.AddTeacherIDs(ids...)
+	return sc
+}
+
+// AddTeachers adds the "teachers" edges to the Teacher entity.
+func (sc *StudentCreate) AddTeachers(t ...*Teacher) *StudentCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return sc.AddTeacherIDs(ids...)
+}
+
 // Mutation returns the StudentMutation object of the builder.
 func (sc *StudentCreate) Mutation() *StudentMutation {
 	return sc.mutation
@@ -25,6 +62,7 @@ func (sc *StudentCreate) Mutation() *StudentMutation {
 
 // Save creates the Student in the database.
 func (sc *StudentCreate) Save(ctx context.Context) (*Student, error) {
+	sc.defaults()
 	return withHooks(ctx, sc.sqlSave, sc.mutation, sc.hooks)
 }
 
@@ -50,8 +88,27 @@ func (sc *StudentCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (sc *StudentCreate) defaults() {
+	if _, ok := sc.mutation.IsSuspended(); !ok {
+		v := student.DefaultIsSuspended
+		sc.mutation.SetIsSuspended(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (sc *StudentCreate) check() error {
+	if _, ok := sc.mutation.Email(); !ok {
+		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Student.email"`)}
+	}
+	if v, ok := sc.mutation.Email(); ok {
+		if err := student.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "Student.email": %w`, err)}
+		}
+	}
+	if _, ok := sc.mutation.IsSuspended(); !ok {
+		return &ValidationError{Name: "is_suspended", err: errors.New(`ent: missing required field "Student.is_suspended"`)}
+	}
 	return nil
 }
 
@@ -78,6 +135,30 @@ func (sc *StudentCreate) createSpec() (*Student, *sqlgraph.CreateSpec) {
 		_node = &Student{config: sc.config}
 		_spec = sqlgraph.NewCreateSpec(student.Table, sqlgraph.NewFieldSpec(student.FieldID, field.TypeInt))
 	)
+	if value, ok := sc.mutation.Email(); ok {
+		_spec.SetField(student.FieldEmail, field.TypeString, value)
+		_node.Email = value
+	}
+	if value, ok := sc.mutation.IsSuspended(); ok {
+		_spec.SetField(student.FieldIsSuspended, field.TypeBool, value)
+		_node.IsSuspended = value
+	}
+	if nodes := sc.mutation.TeachersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   student.TeachersTable,
+			Columns: student.TeachersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -99,6 +180,7 @@ func (scb *StudentCreateBulk) Save(ctx context.Context) ([]*Student, error) {
 	for i := range scb.builders {
 		func(i int, root context.Context) {
 			builder := scb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*StudentMutation)
 				if !ok {

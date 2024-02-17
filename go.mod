@@ -5,6 +5,7 @@ go 1.21
 require (
 	entgo.io/ent v0.12.5
 	github.com/go-chi/chi/v5 v5.0.11
+	github.com/go-chi/render v1.0.3
 	github.com/lib/pq v1.10.9
 )
 
@@ -22,4 +23,7 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 )
 
-require github.com/stretchr/testify v1.8.4 // indirect
+require (
+	github.com/ajg/form v1.5.1 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
+)

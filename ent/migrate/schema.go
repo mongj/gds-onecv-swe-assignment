@@ -8,19 +8,11 @@ import (
 )
 
 var (
-	// NotificationsColumns holds the columns for the "notifications" table.
-	NotificationsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-	}
-	// NotificationsTable holds the schema information for the "notifications" table.
-	NotificationsTable = &schema.Table{
-		Name:       "notifications",
-		Columns:    NotificationsColumns,
-		PrimaryKey: []*schema.Column{NotificationsColumns[0]},
-	}
 	// StudentsColumns holds the columns for the "students" table.
 	StudentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "email", Type: field.TypeString, Unique: true},
+		{Name: "is_suspended", Type: field.TypeBool, Default: false},
 	}
 	// StudentsTable holds the schema information for the "students" table.
 	StudentsTable = &schema.Table{
@@ -31,6 +23,7 @@ var (
 	// TeachersColumns holds the columns for the "teachers" table.
 	TeachersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "email", Type: field.TypeString, Unique: true},
 	}
 	// TeachersTable holds the schema information for the "teachers" table.
 	TeachersTable = &schema.Table{
@@ -38,13 +31,40 @@ var (
 		Columns:    TeachersColumns,
 		PrimaryKey: []*schema.Column{TeachersColumns[0]},
 	}
+	// TeacherStudentsColumns holds the columns for the "teacher_students" table.
+	TeacherStudentsColumns = []*schema.Column{
+		{Name: "teacher_id", Type: field.TypeInt},
+		{Name: "student_id", Type: field.TypeInt},
+	}
+	// TeacherStudentsTable holds the schema information for the "teacher_students" table.
+	TeacherStudentsTable = &schema.Table{
+		Name:       "teacher_students",
+		Columns:    TeacherStudentsColumns,
+		PrimaryKey: []*schema.Column{TeacherStudentsColumns[0], TeacherStudentsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "teacher_students_teacher_id",
+				Columns:    []*schema.Column{TeacherStudentsColumns[0]},
+				RefColumns: []*schema.Column{TeachersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "teacher_students_student_id",
+				Columns:    []*schema.Column{TeacherStudentsColumns[1]},
+				RefColumns: []*schema.Column{StudentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		NotificationsTable,
 		StudentsTable,
 		TeachersTable,
+		TeacherStudentsTable,
 	}
 )
 
 func init() {
+	TeacherStudentsTable.ForeignKeys[0].RefTable = TeachersTable
+	TeacherStudentsTable.ForeignKeys[1].RefTable = StudentsTable
 }

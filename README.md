@@ -3,6 +3,11 @@
 ### Project structure
 (TODO)
 
+### Database Schema
+![entity relation diagram](erd.jpg)
+
+While emails are used to identify the teachers and students, auto-incrementing bigint id fields are used as primary keys for the `teachers` and `students` tables for better extensibility (e.g. we may want to allow teachers/students to update their email addresses in the future)
+
 ### Local Development
 
 **Environment variables**

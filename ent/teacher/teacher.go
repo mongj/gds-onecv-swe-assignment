@@ -4,6 +4,7 @@ package teacher
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -11,14 +12,30 @@ const (
 	Label = "teacher"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldEmail holds the string denoting the email field in the database.
+	FieldEmail = "email"
+	// EdgeStudents holds the string denoting the students edge name in mutations.
+	EdgeStudents = "students"
 	// Table holds the table name of the teacher in the database.
 	Table = "teachers"
+	// StudentsTable is the table that holds the students relation/edge. The primary key declared below.
+	StudentsTable = "teacher_students"
+	// StudentsInverseTable is the table name for the Student entity.
+	// It exists in this package in order to avoid circular dependency with the "student" package.
+	StudentsInverseTable = "students"
 )
 
 // Columns holds all SQL columns for teacher fields.
 var Columns = []string{
 	FieldID,
+	FieldEmail,
 }
+
+var (
+	// StudentsPrimaryKey and StudentsColumn2 are the table columns denoting the
+	// primary key for the students relation (M2M).
+	StudentsPrimaryKey = []string{"teacher_id", "student_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -30,10 +47,41 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	EmailValidator func(string) error
+)
+
 // OrderOption defines the ordering options for the Teacher queries.
 type OrderOption func(*sql.Selector)
 
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByEmail orders the results by the email field.
+func ByEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEmail, opts...).ToFunc()
+}
+
+// ByStudentsCount orders the results by students count.
+func ByStudentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newStudentsStep(), opts...)
+	}
+}
+
+// ByStudents orders the results by students terms.
+func ByStudents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newStudentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newStudentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(StudentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, StudentsTable, StudentsPrimaryKey...),
+	)
 }
