@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mongj/gds-onecv-swe-assignment/internal/database"
-	"github.com/mongj/gds-onecv-swe-assignment/internal/middleware"
-	"github.com/mongj/gds-onecv-swe-assignment/internal/router"
-	"github.com/mongj/gds-onecv-swe-assignment/internal/server"
+	"github.com/mongj/gds-onecv-swe-assignment/pkg/database"
+	"github.com/mongj/gds-onecv-swe-assignment/pkg/middleware"
+	"github.com/mongj/gds-onecv-swe-assignment/pkg/router"
+	"github.com/mongj/gds-onecv-swe-assignment/pkg/server"
 
 	_ "github.com/lib/pq"
 )
