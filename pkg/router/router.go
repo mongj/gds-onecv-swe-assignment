@@ -17,9 +17,9 @@ func Setup(r chi.Router) {
 func PublicRoutes() func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Post("/register", handlers.RegisterStudent)
-		// r.Get("/commonstudents", handler.ListCommonStudents)
-		// r.Post("/suspend", handler.SuspendStudent)
-		// r.Post("/retrievefornotifications", handler.RetrieveForNotifications)
+		r.Get("/commonstudents", handlers.ListCommonStudents)
+		// r.Post("/suspend", handlers.SuspendStudent)
+		// r.Post("/retrievefornotifications", handlers.RetrieveForNotifications)
 
 		// Seeding
 		r.Post("/seed", seed.Handler)
