@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/mongj/gds-onecv-swe-assignment/pkg/handlers"
 	"github.com/mongj/gds-onecv-swe-assignment/pkg/seed"
 )
 
@@ -15,7 +16,10 @@ func Setup(r chi.Router) {
 
 func PublicRoutes() func(r chi.Router) {
 	return func(r chi.Router) {
-		// TODO: Add public routes here
+		r.Post("/register", handlers.RegisterStudent)
+		// r.Get("/commonstudents", handler.ListCommonStudents)
+		// r.Post("/suspend", handler.SuspendStudent)
+		// r.Post("/retrievefornotifications", handler.RetrieveForNotifications)
 
 		// Seeding
 		r.Post("/seed", seed.Handler)
