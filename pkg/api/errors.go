@@ -3,6 +3,9 @@ package api
 import "fmt"
 
 // Custom errors
+
+// ErrMissingInput is takes as arguments two strings indicating the expected input
+// and the actual input, and builds an error with the customized message
 func ErrMissingInput(expected string, actual string) error {
 	return fmt.Errorf("missing input in request body: expected %s, got %s", expected, actual)
 }
