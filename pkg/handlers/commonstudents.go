@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/predicate"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/teacher"
 	"github.com/mongj/gds-onecv-swe-assignment/pkg/api"
 	"github.com/mongj/gds-onecv-swe-assignment/pkg/database"
@@ -19,14 +21,17 @@ func ListCommonStudents(w http.ResponseWriter, r *http.Request) {
 	client := database.Client
 	var err error
 
-	teachers := r.URL.Query()["teacher"]
+	emails := r.URL.Query()["teacher"]
 
-	// Find all the teacher nodes with the given email(s)
-	// and run graph traversal to find students registered under them
-	s, err := client.Teacher.
-		Query().
-		Where(teacher.EmailIn(teachers...)).
-		QueryStudents().
+	// Make a list of predicates to find teachers with the given email(s)
+	emailsPred := make([]predicate.Student, len(emails))
+	for i, email := range emails {
+		emailsPred[i] = student.HasTeachersWith(teacher.Email(email))
+	}
+
+	// Find student nodes each of which has edge(s) to all the specified teacher node(s)
+	s, err := client.Student.Query().
+		Where(emailsPred...).
 		All(context.Background())
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
