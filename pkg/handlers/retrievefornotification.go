@@ -15,7 +15,7 @@ import (
 )
 
 type retrieveForNotificationRequest struct {
-	Teacher  string   `json:"teacher"`
+	Teacher      string `json:"teacher"`
 	Notification string `json:"notification"`
 }
 
@@ -58,7 +58,7 @@ func RetrieveForNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := re.FindAllStringSubmatch(data.Notification, -1)
-	
+
 	// Extract first capturing group from each match, which excludes the @ symbol in front
 	matches := make([]string, len(m))
 	for i, match := range m {
@@ -82,19 +82,19 @@ func RetrieveForNotifications(w http.ResponseWriter, r *http.Request) {
 	for i, s := range students {
 		registeredStudents[i] = s.Email
 	}
-	
+
 	// Combined slice of registered students and mentioned students
 	recipients := append(registeredStudents, matches...)
 
 	// Deduplicate recipients
 	recipientMap := make(map[string]bool)
-    deduplicatedRecipients := []string{}
-    for _, r := range recipients {
-        if !recipientMap[r] {
-            recipientMap[r] = true
-            deduplicatedRecipients = append(deduplicatedRecipients, r)
-        }
-    }
-	
+	deduplicatedRecipients := []string{}
+	for _, r := range recipients {
+		if !recipientMap[r] {
+			recipientMap[r] = true
+			deduplicatedRecipients = append(deduplicatedRecipients, r)
+		}
+	}
+
 	render.JSON(w, r, retrieveForNotificationResponse{Recipients: deduplicatedRecipients})
 }
