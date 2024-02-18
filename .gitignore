@@ -25,3 +25,7 @@ go.work
 
 # private keys
 private.key
+
+# terraform
+.terraform
+terraform.tfstate*
