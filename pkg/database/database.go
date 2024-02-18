@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"testing"
 
 	"github.com/mongj/gds-onecv-swe-assignment/ent"
+	"github.com/mongj/gds-onecv-swe-assignment/ent/enttest"
 )
 
 var Client *ent.Client
 
+// Init initializes the database connection and schema
 func Init() {
 	var err error
 	Client, err = ent.Open(
@@ -34,4 +37,9 @@ func Init() {
 	} else {
 		log.Println("Created schema resource")
 	}
+}
+
+// InitTest initializes an in-memory sqlite database for testing
+func InitTest(t *testing.T) {
+	Client = enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
 }
