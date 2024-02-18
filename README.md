@@ -32,6 +32,8 @@ Alternatively, run
 docker-compose -f docker-compose-dev.yml up -d
 ```
 
+*the only difference between running the contains in dev/prod environment is that the nginx server is configured for HTTPS instead of HTTP in the latter, as the SSL certificate is associated with the Elastic IP address that is only accessible in the production environment
+
 After the containers are up, you can access the backend at `http://localhost` (exposed by default on port 80)
 
 **Seeding**\
