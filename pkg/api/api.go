@@ -1,9 +1,9 @@
 package api
 
-type ErrorResponse struct {
+type GenericResponse struct {
 	Message string `json:"message"`
 }
 
-func BuildError(e error) ErrorResponse {
-	return ErrorResponse{Message: e.Error()}
+func BuildError(e error) GenericResponse {
+	return GenericResponse{Message: e.Error()}
 }

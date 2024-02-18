@@ -11,7 +11,6 @@ import (
 	"github.com/mongj/gds-onecv-swe-assignment/pkg/database"
 )
 
-
 type seedResponse struct {
 	Message string `json:"message"`
 }
@@ -24,12 +23,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	_, err = client.Teacher.Delete().Exec(context.Background())
 	if err != nil {
 		render.JSON(w, r, api.BuildError(err))
-	 return
+		return
 	}
 	_, err = client.Student.Delete().Exec(context.Background())
 	if err != nil {
 		render.JSON(w, r, api.BuildError(err))
-	 return
+		return
 	}
 
 	// create teachers

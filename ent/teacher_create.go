@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mongj/gds-onecv-swe-assignment/ent/student"
@@ -18,6 +19,7 @@ type TeacherCreate struct {
 	config
 	mutation *TeacherMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetEmail sets the "email" field.
@@ -109,6 +111,7 @@ func (tc *TeacherCreate) createSpec() (*Teacher, *sqlgraph.CreateSpec) {
 		_node = &Teacher{config: tc.config}
 		_spec = sqlgraph.NewCreateSpec(teacher.Table, sqlgraph.NewFieldSpec(teacher.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = tc.conflict
 	if value, ok := tc.mutation.Email(); ok {
 		_spec.SetField(teacher.FieldEmail, field.TypeString, value)
 		_node.Email = value
@@ -132,11 +135,160 @@ func (tc *TeacherCreate) createSpec() (*Teacher, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Teacher.Create().
+//		SetEmail(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.TeacherUpsert) {
+//			SetEmail(v+v).
+//		}).
+//		Exec(ctx)
+func (tc *TeacherCreate) OnConflict(opts ...sql.ConflictOption) *TeacherUpsertOne {
+	tc.conflict = opts
+	return &TeacherUpsertOne{
+		create: tc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (tc *TeacherCreate) OnConflictColumns(columns ...string) *TeacherUpsertOne {
+	tc.conflict = append(tc.conflict, sql.ConflictColumns(columns...))
+	return &TeacherUpsertOne{
+		create: tc,
+	}
+}
+
+type (
+	// TeacherUpsertOne is the builder for "upsert"-ing
+	//  one Teacher node.
+	TeacherUpsertOne struct {
+		create *TeacherCreate
+	}
+
+	// TeacherUpsert is the "OnConflict" setter.
+	TeacherUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetEmail sets the "email" field.
+func (u *TeacherUpsert) SetEmail(v string) *TeacherUpsert {
+	u.Set(teacher.FieldEmail, v)
+	return u
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *TeacherUpsert) UpdateEmail() *TeacherUpsert {
+	u.SetExcluded(teacher.FieldEmail)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *TeacherUpsertOne) UpdateNewValues() *TeacherUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *TeacherUpsertOne) Ignore() *TeacherUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *TeacherUpsertOne) DoNothing() *TeacherUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the TeacherCreate.OnConflict
+// documentation for more info.
+func (u *TeacherUpsertOne) Update(set func(*TeacherUpsert)) *TeacherUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&TeacherUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetEmail sets the "email" field.
+func (u *TeacherUpsertOne) SetEmail(v string) *TeacherUpsertOne {
+	return u.Update(func(s *TeacherUpsert) {
+		s.SetEmail(v)
+	})
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *TeacherUpsertOne) UpdateEmail() *TeacherUpsertOne {
+	return u.Update(func(s *TeacherUpsert) {
+		s.UpdateEmail()
+	})
+}
+
+// Exec executes the query.
+func (u *TeacherUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for TeacherCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *TeacherUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *TeacherUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *TeacherUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // TeacherCreateBulk is the builder for creating many Teacher entities in bulk.
 type TeacherCreateBulk struct {
 	config
 	err      error
 	builders []*TeacherCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Teacher entities in the database.
@@ -165,6 +317,7 @@ func (tcb *TeacherCreateBulk) Save(ctx context.Context) ([]*Teacher, error) {
 					_, err = mutators[i+1].Mutate(root, tcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = tcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, tcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -215,6 +368,124 @@ func (tcb *TeacherCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (tcb *TeacherCreateBulk) ExecX(ctx context.Context) {
 	if err := tcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Teacher.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.TeacherUpsert) {
+//			SetEmail(v+v).
+//		}).
+//		Exec(ctx)
+func (tcb *TeacherCreateBulk) OnConflict(opts ...sql.ConflictOption) *TeacherUpsertBulk {
+	tcb.conflict = opts
+	return &TeacherUpsertBulk{
+		create: tcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (tcb *TeacherCreateBulk) OnConflictColumns(columns ...string) *TeacherUpsertBulk {
+	tcb.conflict = append(tcb.conflict, sql.ConflictColumns(columns...))
+	return &TeacherUpsertBulk{
+		create: tcb,
+	}
+}
+
+// TeacherUpsertBulk is the builder for "upsert"-ing
+// a bulk of Teacher nodes.
+type TeacherUpsertBulk struct {
+	create *TeacherCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *TeacherUpsertBulk) UpdateNewValues() *TeacherUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Teacher.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *TeacherUpsertBulk) Ignore() *TeacherUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *TeacherUpsertBulk) DoNothing() *TeacherUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the TeacherCreateBulk.OnConflict
+// documentation for more info.
+func (u *TeacherUpsertBulk) Update(set func(*TeacherUpsert)) *TeacherUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&TeacherUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetEmail sets the "email" field.
+func (u *TeacherUpsertBulk) SetEmail(v string) *TeacherUpsertBulk {
+	return u.Update(func(s *TeacherUpsert) {
+		s.SetEmail(v)
+	})
+}
+
+// UpdateEmail sets the "email" field to the value that was provided on create.
+func (u *TeacherUpsertBulk) UpdateEmail() *TeacherUpsertBulk {
+	return u.Update(func(s *TeacherUpsert) {
+		s.UpdateEmail()
+	})
+}
+
+// Exec executes the query.
+func (u *TeacherUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the TeacherCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for TeacherCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *TeacherUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
