@@ -50,7 +50,7 @@ For local development, the database container is also exposed on port 5432 on lo
 ### Cloud Deployment and CI/CD
 The API is deployed on AWS EC2 at https://54.254.110.35
 
-Elastic IP address is also associated with a TLS/SSL certificate obtained from ZeroSSL to enable the instance to handle HTTPS traffic.
+The EC2 instance is associated with an Elastic IP address, so that we can keep the same address over multiple boot cycles of the instance. A TLS/SSL certificate for this particular Elastic IP address is also installed on the nginx proxy in production environment, to enable the instance to handle HTTPS traffic.
 
 Terraform is used to quickly launch and tear down the instance, with secrets stored in Hashicorp Vault Secrets.
 
