@@ -12,7 +12,7 @@ import (
 	"github.com/mongj/gds-onecv-swe-assignment/pkg/database"
 )
 
-type commonStudentsResponse struct {
+type CommonStudentsResponse struct {
 	Students []string `json:"students"`
 }
 
@@ -46,7 +46,7 @@ func ListCommonStudents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return list of students
-	render.JSON(w, r, commonStudentsResponse{Students: students})
+	render.JSON(w, r, CommonStudentsResponse{Students: students})
 
 	// If no teacher email is provided in the query params, or if no student is found,
 	// an empty array is returned with status code 200.

@@ -2,12 +2,16 @@ package api
 
 import "fmt"
 
-// Custom errors
+var (
+	MissingInputErrorStr    = "missing input in request body"
+	JSONParseErrorStr       = "failed to parse JSON request body"
+	StudentNotFoundErrorStr = "no student found with email"
+)
 
 // ErrMissingInput is takes as arguments two strings indicating the expected input
 // and the actual input, and builds an error with the customized message
 func ErrMissingInput(expected string, actual string) error {
-	return fmt.Errorf("missing input in request body: expected %s, got %s", expected, actual)
+	return fmt.Errorf("%s: expected %s, got %s", MissingInputErrorStr, expected, actual)
 }
 
 // Custom error wrappers to provide more
@@ -17,5 +21,5 @@ func WrapError(err error, msg string) error {
 }
 
 func WrapErrorJSONRequestBody(err error) error {
-	return WrapError(err, "failed to parse JSON request body")
+	return WrapError(err, JSONParseErrorStr)
 }

@@ -52,7 +52,7 @@ func SuspendStudent(w http.ResponseWriter, r *http.Request) {
 		switch err.(type) {
 		case *ent.NotFoundError:
 			render.Status(r, http.StatusNotFound)
-			render.JSON(w, r, api.BuildError(fmt.Errorf("no student found with email: %s", data.Student)))
+			render.JSON(w, r, api.BuildError(fmt.Errorf("%s: %s", api.StudentNotFoundErrorStr, data.Student)))
 		default:
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, api.BuildError(api.WrapError(err, "failed to retrieve specified student")))
