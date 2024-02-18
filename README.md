@@ -1,8 +1,5 @@
 # GDS-ONECV-SWE Take-home assignment
 
-### Project structure
-(TODO)
-
 ### Database Schema
 ![entity relation diagram](erd.jpg)
 
@@ -47,6 +44,59 @@ The docker-compose service consists of 3 containers:
 - Nginx reverse proxy
 
 For local development, the database container is also exposed on port 5432 on localhost for easy debugging
+
+### CI/CD
+The API is deployed on AWS EC2 at https://54.254.110.35
+
+Elastic IP address is also associated with a TLS/SSL certificate obtained from ZeroSSL to enable the instance to handle HTTPS traffic.
+
+Terraform is used to quickly launch and tear down the instance, with secrets stored in Hashicorp Vault Secrets.
+
+Automated testing (`go test ./...`) is triggered via GitHub actions whenever a new commit is made, and when the master branch receives a pull request.
+
+### Project structure
+```
+    .
+    ├── ent
+    │   ├── ...
+    │   │   
+    │   ├── schema
+    │   │   ├── student.go
+    │   │   └── teacher.go
+    │   │
+    │   ├── ... (generated files by ent)
+    ├── pkg
+    │   ├── api
+    │   │   ├── api.go
+    │   │   ├── api_test.go
+    │   │   ├── errors.go
+    │   │   └── errors_test.go
+    │   ├── database
+    │   │   ├── database.go
+    │   │   ├── students.go
+    │   │   └── teachers.go
+    │   ├── handlers
+    │   │   ├── commonstudents.go
+    │   │   ├── commonstudents_test.go
+    │   │   ├── register.go
+    │   │   ├── register_test.go
+    │   │   ├── retrievefornotification.go
+    │   │   ├── retrievefornotification_test.go
+    │   │   ├── suspend.go
+    │   │   └── suspend_test.go
+    │   ├── middleware
+    │   ├── router 
+    │   ├── seed
+    │   ├── server
+    │   └── testutil
+    ├── terraform
+    ├── certificate.crt
+    ├── go.mod
+    ├── go.sum
+    ├── main.go
+    ├── (nginx configs...)
+    └── (Dockerfiles, docker-compose.yml files...)
+```
 
 ### Commit messages
 
