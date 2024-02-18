@@ -70,7 +70,6 @@ func RetrieveForNotifications(w http.ResponseWriter, r *http.Request) {
 		Query().
 		Where(teacher.Email(data.Teacher)).
 		QueryStudents().
-		Where(student.IsSuspended(false)).
 		All(context.Background())
 	if err != nil {
 		render.Status(r, http.StatusInternalServerError)
@@ -83,12 +82,28 @@ func RetrieveForNotifications(w http.ResponseWriter, r *http.Request) {
 		registeredStudents[i] = s.Email
 	}
 
+	// Retrieve list of suspended students
+	suspendedStudents, err := client.Student.
+		Query().
+		Where(student.IsSuspended(true)).
+		All(context.Background())
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, api.BuildError(api.WrapError(err, "failed to retrieve suspended students")))
+		return
+	}
+
 	// Combined slice of registered students and mentioned students
 	recipients := append(registeredStudents, matches...)
 
-	// Deduplicate recipients
+	// Deduplicate recipients and remove suspended students from list
 	recipientMap := make(map[string]bool)
 	deduplicatedRecipients := []string{}
+
+	for _, s := range suspendedStudents {
+		recipientMap[s.Email] = true
+	}
+
 	for _, r := range recipients {
 		if !recipientMap[r] {
 			recipientMap[r] = true
