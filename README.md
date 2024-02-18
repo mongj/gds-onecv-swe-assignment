@@ -1,4 +1,4 @@
-# GDS-ONECV-SWE Take-home assignment
+# GDS-OneCV-SWE-Assignment
 
 ### Database Schema
 ![entity relation diagram](erd.jpg)
