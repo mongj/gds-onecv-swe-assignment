@@ -47,14 +47,14 @@ The docker-compose service consists of 3 containers:
 
 For local development, the database container is also exposed on port 5432 on localhost for easy debugging
 
-### CI/CD
+### Cloud Deployment and CI/CD
 The API is deployed on AWS EC2 at https://54.254.110.35
 
 Elastic IP address is also associated with a TLS/SSL certificate obtained from ZeroSSL to enable the instance to handle HTTPS traffic.
 
 Terraform is used to quickly launch and tear down the instance, with secrets stored in Hashicorp Vault Secrets.
 
-Automated testing (`go test ./...`) is triggered via GitHub actions whenever a new commit is made, and when the master branch receives a pull request.
+Automated unit-testing is triggered via GitHub actions whenever a new commit is made, and when the master branch receives a pull request.
 
 ### Project structure
 ```
