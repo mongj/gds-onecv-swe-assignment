@@ -9,9 +9,11 @@
 While emails are used to identify the teachers and students, auto-incrementing bigint id fields are used as primary keys for the `teachers` and `students` tables for better extensibility (e.g. we may want to allow teachers/students to update their email addresses in the future)
 
 ### Local Development
+**Prerequisites**
+- Docker
+- Docker Compose
 
-**Environment variables**
-
+**Environment variables**\
 Set the environmental variables as follow
 | Key | Value | Remarks |
 |--------------|--------------------------------------|-----------------------------------------------------------------------|
@@ -23,6 +25,28 @@ Set the environmental variables as follow
 | DB_PASSWORD | | e.g. mysecretpassword |
 | SERVER_PORT | 8000 | |
 | SERVER_HOST | server | `server` is the name of the golang server service in docker-compsoe |
+
+Run the following to spin up the containers
+```
+bash run.sh --dev
+```
+Alternatively, run
+```
+docker-compose -f docker-compose-dev.yml up -d
+```
+
+After the containers are up, you can access the backend at `http://localhost` (exposed by default on port 80)
+
+**Seeding**\
+For seeding, send a POST request to `api/seed`
+
+**Docker compose**\
+The docker-compose service consists of 3 containers:
+- HTTP server in Golang
+- PostgreSQL database
+- Nginx reverse proxy
+
+For local development, the database container is also exposed on port 5432 on localhost for easy debugging
 
 ### Commit messages
 

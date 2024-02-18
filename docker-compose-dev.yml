@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  database:
+    image: postgres:16.1
+    container_name: database
+    restart: always
+    expose:
+      - ${DB_PORT}
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - container-network
+
+  server:
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+      target: builder
+    container_name: server
+    environment:
+      - DB_DIALECT=${DB_DIALECT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_NAME=${DB_NAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SERVER_PORT=${SERVER_PORT}
+      - SERVER_HOST=${SERVER_HOST}
+    expose:
+      - ${SERVER_PORT}
+    depends_on:
+      - database
+    networks:
+      - container-network
+
+  reverse-proxy:
+    image: nginx:1.25
+    container_name: reverse-proxy
+    volumes:
+      - type: bind
+        source: ./nginx-dev.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+    ports:
+      - 80:80
+    depends_on:
+      - server
+    networks:
+      - container-network
+
+volumes:
+  db-data:
+
+networks:
+  container-network:
+    driver: bridge
